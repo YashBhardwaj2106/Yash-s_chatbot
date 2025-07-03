@@ -37,7 +37,7 @@ export default function App() {
     // --- Initial Setup Check ---
     useEffect(() => {
         if (!app || !auth || !db) {
-            setError("Firebase is not configured. Please ensure all REACT_APP_FIREBASE_* environment variables are set.");
+            setError("Firebase is not configured. Please ensure all REACT_APP_FIREBASE_* environment variables are set correctly in your Netlify settings.");
             setIsAuthReady(true);
         }
     }, []);
