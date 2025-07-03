@@ -4,9 +4,22 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { ArrowUp, User, Bot, Loader2, Clipboard } from 'lucide-react';
 
+// --- TEMPORARY DEBUGGING ---
+// This code runs during the build process on Netlify/Vercel and prints to the build log.
+// It helps us see exactly which environment variables are being found.
+console.log("--- Checking Environment Variables ---");
+console.log("REACT_APP_FIREBASE_API_KEY Found:", process.env.REACT_APP_FIREBASE_API_KEY ? "Yes" : "No <<<<<<<");
+console.log("REACT_APP_FIREBASE_AUTH_DOMAIN Found:", process.env.REACT_APP_FIREBASE_AUTH_DOMAIN ? "Yes" : "No <<<<<<<");
+console.log("REACT_APP_FIREBASE_PROJECT_ID Found:", process.env.REACT_APP_FIREBASE_PROJECT_ID ? "Yes" : "No <<<<<<<");
+console.log("REACT_APP_FIREBASE_STORAGE_BUCKET Found:", process.env.REACT_APP_FIREBASE_STORAGE_BUCKET ? "Yes" : "No <<<<<<<");
+console.log("REACT_APP_FIREBASE_MESSAGING_SENDER_ID Found:", process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID ? "Yes" : "No <<<<<<<");
+console.log("REACT_APP_FIREBASE_APP_ID Found:", process.env.REACT_APP_FIREBASE_APP_ID ? "Yes" : "No <<<<<<<");
+console.log("REACT_APP_GEMINI_API_KEY Found:", process.env.REACT_APP_GEMINI_API_KEY ? "Yes" : "No <<<<<<<");
+console.log("------------------------------------");
+// --- END DEBUGGING ---
+
+
 // --- Firebase Configuration ---
-// This is a more robust method that reads each key individually.
-// This avoids potential JSON parsing errors during the build process.
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -19,7 +32,6 @@ const firebaseConfig = {
 const appId = 'simple-gemini-chatbot';
 
 // --- Firebase Initialization ---
-// Initialize Firebase only if the config has the necessary keys.
 const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
@@ -37,7 +49,7 @@ export default function App() {
     // --- Initial Setup Check ---
     useEffect(() => {
         if (!app || !auth || !db) {
-            setError("Firebase is not configured. Please ensure all REACT_APP_FIREBASE_* environment variables are set correctly in your Netlify settings.");
+            setError("Firebase is not configured. Please check the build log on Netlify to diagnose which environment variable is missing.");
             setIsAuthReady(true);
         }
     }, []);
