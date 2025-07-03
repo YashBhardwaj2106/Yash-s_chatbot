@@ -5,23 +5,21 @@ import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTim
 import { ArrowUp, User, Bot, Loader2, Clipboard } from 'lucide-react';
 
 // --- Firebase Configuration ---
-// This now safely reads the configuration from your Vercel Environment Variables.
-// It checks if 'process' exists to avoid crashing in certain environments.
-let firebaseConfig = {};
-try {
-    if (typeof process !== 'undefined' && process.env.REACT_APP_FIREBASE_CONFIG) {
-        firebaseConfig = JSON.parse(process.env.REACT_APP_FIREBASE_CONFIG);
-    } else {
-        console.warn("Firebase config environment variable not found. App may not connect to Firebase correctly.");
-    }
-} catch (error) {
-    console.error("Could not parse Firebase config:", error);
-}
+// This is a more robust method that reads each key individually.
+// This avoids potential JSON parsing errors during the build process.
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID
+};
 
 const appId = 'simple-gemini-chatbot';
 
 // --- Firebase Initialization ---
-// Initialize Firebase only if the config is not empty
+// Initialize Firebase only if the config has the necessary keys.
 const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
@@ -39,7 +37,7 @@ export default function App() {
     // --- Initial Setup Check ---
     useEffect(() => {
         if (!app || !auth || !db) {
-            setError("Firebase is not configured. Please set up your REACT_APP_FIREBASE_CONFIG environment variable.");
+            setError("Firebase is not configured. Please ensure all REACT_APP_FIREBASE_* environment variables are set.");
             setIsAuthReady(true);
         }
     }, []);
@@ -128,12 +126,8 @@ export default function App() {
 
             const payload = { contents: chatHistory };
             
-            // This now safely reads the API key from your Vercel Environment Variables
-            let apiKey = '';
-            if (typeof process !== 'undefined' && process.env.REACT_APP_GEMINI_API_KEY) {
-                apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-            } else {
-                 console.warn("Gemini API key environment variable not found.");
+            const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+            if (!apiKey) {
                  throw new Error("API_KEY_NOT_FOUND");
             }
 
