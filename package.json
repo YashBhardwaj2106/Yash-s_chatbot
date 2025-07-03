@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "firebase": "^11.10.0",
+    "lucide-react": "^0.525.0"
+  }
+}
