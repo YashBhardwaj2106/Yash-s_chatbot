@@ -4,22 +4,8 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { ArrowUp, User, Bot, Loader2, Clipboard } from 'lucide-react';
 
-// --- TEMPORARY DEBUGGING ---
-// This code runs during the build process on Netlify/Vercel and prints to the build log.
-// It helps us see exactly which environment variables are being found.
-console.log("--- Checking Environment Variables ---");
-console.log("REACT_APP_FIREBASE_API_KEY Found:", process.env.REACT_APP_FIREBASE_API_KEY ? "Yes" : "No <<<<<<<");
-console.log("REACT_APP_FIREBASE_AUTH_DOMAIN Found:", process.env.REACT_APP_FIREBASE_AUTH_DOMAIN ? "Yes" : "No <<<<<<<");
-console.log("REACT_APP_FIREBASE_PROJECT_ID Found:", process.env.REACT_APP_FIREBASE_PROJECT_ID ? "Yes" : "No <<<<<<<");
-console.log("REACT_APP_FIREBASE_STORAGE_BUCKET Found:", process.env.REACT_APP_FIREBASE_STORAGE_BUCKET ? "Yes" : "No <<<<<<<");
-console.log("REACT_APP_FIREBASE_MESSAGING_SENDER_ID Found:", process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID ? "Yes" : "No <<<<<<<");
-console.log("REACT_APP_FIREBASE_APP_ID Found:", process.env.REACT_APP_FIREBASE_APP_ID ? "Yes" : "No <<<<<<<");
-console.log("REACT_APP_GEMINI_API_KEY Found:", process.env.REACT_APP_GEMINI_API_KEY ? "Yes" : "No <<<<<<<");
-console.log("------------------------------------");
-// --- END DEBUGGING ---
-
-
 // --- Firebase Configuration ---
+// This robust method reads each key individually from the build environment.
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -49,7 +35,7 @@ export default function App() {
     // --- Initial Setup Check ---
     useEffect(() => {
         if (!app || !auth || !db) {
-            setError("Firebase is not configured. Please check the build log on Netlify to diagnose which environment variable is missing.");
+            setError("Firebase is not configured. Please ensure all REACT_APP_FIREBASE_* environment variables are set correctly.");
             setIsAuthReady(true);
         }
     }, []);
@@ -125,7 +111,7 @@ export default function App() {
         const messagesColPath = `/artifacts/${appId}/users/${userId}/messages`;
         await addDoc(collection(db, messagesColPath), userMessage);
 
-        // --- Gemini API Call ---
+        // --- NEW: Call our secure backend proxy ---
         try {
             const chatHistory = messages
                 .filter(msg => msg.id !== 'welcome-1')
@@ -136,23 +122,16 @@ export default function App() {
             
             chatHistory.push({ role: "user", parts: [{ text: currentInput }] });
 
-            const payload = { contents: chatHistory };
-            
-            const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-            if (!apiKey) {
-                 throw new Error("API_KEY_NOT_FOUND");
-            }
-
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            
-            const response = await fetch(apiUrl, {
+            // The frontend now calls our own backend, not Google's.
+            const response = await fetch('/api/gemini', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ chatHistory }) // Send the history in the request body
             });
 
             if (!response.ok) {
-                throw new Error(`API call failed with status: ${response.status}`);
+                const errData = await response.json();
+                throw new Error(errData.error || `API call failed with status: ${response.status}`);
             }
 
             const result = await response.json();
@@ -173,13 +152,9 @@ export default function App() {
             await addDoc(collection(db, messagesColPath), botMessage);
 
         } catch (error) {
-            console.error("Error calling Gemini API:", error);
-            const errorMessageText = error.message === "API_KEY_NOT_FOUND" 
-                ? "Could not find the Gemini API Key. Please ensure the REACT_APP_GEMINI_API_KEY environment variable is set."
-                : "I'm having trouble connecting to my brain right now. Please try again in a moment.";
-
+            console.error("Error calling backend proxy:", error);
             const errorMessage = {
-                text: errorMessageText,
+                text: `An error occurred: ${error.message}`,
                 sender: 'bot',
                 timestamp: serverTimestamp(),
             };
