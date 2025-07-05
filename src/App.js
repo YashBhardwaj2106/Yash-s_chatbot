@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings, Code } from 'lucide-react';
+import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings } from 'lucide-react';
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
