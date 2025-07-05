@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Loader2, Plus, MessageSquare, Sun, Trash2, LogOut } from 'lucide-react';
+import { ArrowUp, User, Loader2, Plus, Sun, Trash2, LogOut } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -304,7 +304,7 @@ export default function App() {
                                         handleSendMessage(e);
                                     }
                                 }}
-                                placeholder="Message Chatbot..."
+                                placeholder="Message ChatGPT..."
                                 className="w-full border border-gray-300 rounded-lg py-3 pl-4 pr-14 focus:ring-2 focus:ring-gray-400 focus:outline-none transition-shadow resize-none"
                                 rows={1}
                                 disabled={isLoading || !!error}
