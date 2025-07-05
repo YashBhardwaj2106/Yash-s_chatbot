@@ -215,9 +215,13 @@ export default function App() {
         <>
             <style>{`
                 body {
-                    background-color: #020617;
-                    background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-                    background-size: 20px 20px;
+                    background-color: #02040a;
+                    background-image: 
+                        radial-gradient(circle at 25% 30%, rgba(4, 58, 112, 0.4) 0%, rgba(4, 58, 112, 0) 50%),
+                        radial-gradient(circle at 75% 70%, rgba(67, 35, 109, 0.4) 0%, rgba(67, 35, 109, 0) 50%),
+                        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), 
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+                    background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
                 }
                 .pro-scrollbar::-webkit-scrollbar {
                     width: 6px;
@@ -242,7 +246,7 @@ export default function App() {
             `}</style>
             <div className="flex h-screen font-sans text-gray-200 bg-transparent">
                 {/* --- Sidebar --- */}
-                <div className={`bg-gray-900/50 backdrop-blur-md border-r border-gray-800 flex flex-col justify-between transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 p-4' : 'w-0 p-0'}`}>
+                <div className={`bg-gray-900/60 backdrop-blur-lg border-r border-gray-800 flex flex-col justify-between transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 p-4' : 'w-0 p-0'}`}>
                     <div className={`transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
                         <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mb-6 text-sm font-semibold">
                             <Plus className="w-5 h-5"/> New Chat
@@ -341,7 +345,7 @@ export default function App() {
                                         }
                                     }}
                                     placeholder="Enter a prompt here..."
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-4 pr-14 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow resize-none"
+                                    className="w-full bg-gray-900/80 border border-gray-700 rounded-lg py-3 pl-4 pr-14 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow resize-none backdrop-blur-sm"
                                     rows={1}
                                     disabled={isLoading || !!error}
                                 />
