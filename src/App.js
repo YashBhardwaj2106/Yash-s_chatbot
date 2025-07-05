@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Bot, Loader2, Clipboard } from 'lucide-react';
+import { ArrowUp, User, Bot, Loader2, Clipboard, BrainCircuit } from 'lucide-react';
 
 // --- Firebase Configuration ---
 // This robust method reads each key individually from the build environment.
@@ -15,7 +15,7 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
-const appId = 'simple-gemini-chatbot';
+const appId = 'simple-gemini-chatbot'; // Using the original App ID
 
 // --- Firebase Initialization ---
 const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
@@ -71,7 +71,7 @@ export default function App() {
             if (fetchedMessages.length === 0) {
                  setMessages([{
                     id: 'welcome-1',
-                    text: "Hello! I'm a general-purpose AI assistant, a simpler version of Gemini. You can ask me anything. How can I help you today?",
+                    text: "Hello! I'm a general-purpose AI assistant. You can ask me anything.",
                     sender: 'bot',
                     timestamp: new Date()
                 }]);
@@ -91,8 +91,7 @@ export default function App() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
-
-
+    
     // --- Message Handling ---
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -111,7 +110,7 @@ export default function App() {
         const messagesColPath = `/artifacts/${appId}/users/${userId}/messages`;
         await addDoc(collection(db, messagesColPath), userMessage);
 
-        // --- NEW: Call our secure backend proxy ---
+        // --- Call our secure backend proxy ---
         try {
             const chatHistory = messages
                 .filter(msg => msg.id !== 'welcome-1')
@@ -122,11 +121,10 @@ export default function App() {
             
             chatHistory.push({ role: "user", parts: [{ text: currentInput }] });
 
-            // The frontend now calls our own backend, not Google's.
             const response = await fetch('/api/gemini', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatHistory }) // Send the history in the request body
+                body: JSON.stringify({ chatHistory })
             });
 
             if (!response.ok) {
@@ -181,67 +179,71 @@ export default function App() {
 
     if (!isAuthReady) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-                <Loader2 className="w-12 h-12 animate-spin" />
+            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+                <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
                 <p className="ml-4 text-lg">Initializing AI...</p>
             </div>
         );
     }
 
     return (
-        <div className="flex h-screen font-sans bg-gray-900 text-white">
+        <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             {/* --- Sidebar --- */}
-            <div className="w-64 bg-gray-950 p-6 flex-col justify-between hidden md:flex">
+            <div className="w-72 bg-white dark:bg-gray-950 p-6 flex-col justify-between hidden md:flex border-r border-gray-200 dark:border-gray-800">
                 <div>
-                    <h1 className="text-2xl font-bold mb-1">Simple Gemini</h1>
-                    <p className="text-sm text-gray-400 mb-8">General Conversational AI</p>
-                    <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                    <div className="flex items-center gap-3 mb-2">
+                         <BrainCircuit className="w-8 h-8 text-indigo-600"/>
+                         <h1 className="text-2xl font-bold">Yash's AI Assistant</h1>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">General Conversational AI</p>
+                    <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
                         + New Chat
                     </button>
                 </div>
                 <div className="text-xs text-gray-500">
                     <p>User ID: <span className="font-mono">{userId ? userId.substring(0, 12) + '...' : '...'}</span></p>
-                    <p>&copy; 2025 Conversational AI</p>
                 </div>
             </div>
 
             {/* --- Main Chat Area --- */}
-            <div className="flex-1 flex flex-col bg-gray-800/50">
+            <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
                  {error && (
-                    <div className="p-4 bg-red-800 text-white text-center text-sm">
+                    <div className="p-4 bg-red-500 text-white text-center text-sm">
                         <p><strong>Configuration Error:</strong> {error}</p>
                     </div>
                 )}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {messages.map((msg, index) => (
-                        <div key={msg.id || index} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
-                            {msg.sender === 'bot' && (
-                                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
-                                    <Bot className="w-5 h-5 text-white" />
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="space-y-6">
+                        {messages.map((msg, index) => (
+                            <div key={msg.id || index} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
+                                {msg.sender === 'bot' && (
+                                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
+                                        <Bot className="w-5 h-5 text-white" />
+                                    </div>
+                                )}
+                                <div className={`relative max-w-2xl p-4 rounded-xl shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 rounded-bl-none'}`}>
+                                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                                    {msg.sender === 'bot' && (
+                                        <button onClick={() => copyToClipboard(msg.text)} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
+                                            <Clipboard className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
-                            )}
-                            <div className={`relative max-w-xl p-4 rounded-xl ${msg.sender === 'user' ? 'bg-blue-600 rounded-br-none' : 'bg-gray-700 rounded-bl-none'}`}>
-                                <p className="whitespace-pre-wrap">{msg.text}</p>
-                                 {msg.sender === 'bot' && (
-                                     <button onClick={() => copyToClipboard(msg.text)} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-white transition-colors opacity-50 hover:opacity-100">
-                                        <Clipboard className="w-4 h-4" />
-                                     </button>
-                                 )}
+                                {msg.sender === 'user' && (
+                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                        <User className="w-5 h-5 text-gray-500" />
+                                    </div>
+                                )}
                             </div>
-                             {msg.sender === 'user' && (
-                                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
-                                    <User className="w-5 h-5 text-white" />
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                     {isLoading && (
-                         <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
+                         <div className="flex items-start gap-4 mt-6">
+                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
                                 <Bot className="w-5 h-5 text-white" />
                             </div>
-                            <div className="max-w-xl p-4 rounded-xl bg-gray-700 rounded-bl-none">
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                            <div className="max-w-2xl p-4 rounded-xl bg-white dark:bg-gray-800 rounded-bl-none shadow-sm">
+                                <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
                             </div>
                         </div>
                     )}
@@ -249,17 +251,23 @@ export default function App() {
                 </div>
 
                 {/* --- Input Form --- */}
-                <div className="p-6 bg-gray-900/50 border-t border-gray-700">
-                    <form onSubmit={handleSendMessage} className="relative">
-                        <input
-                            type="text"
+                <div className="p-6 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800">
+                    <form id="chat-form" onSubmit={handleSendMessage} className="relative">
+                        <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage(e);
+                                }
+                            }}
                             placeholder="Ask me anything..."
-                            className="w-full bg-gray-700 border-gray-600 rounded-lg py-3 pl-4 pr-12 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                            className="w-full bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg py-3 pl-4 pr-12 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow resize-none"
+                            rows={1}
                             disabled={isLoading || !!error}
                         />
-                        <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">
+                        <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-3 bottom-3 p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">
                             <ArrowUp className="w-5 h-5" />
                         </button>
                     </form>
