@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings } from 'lucide-react';
+import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings, Clipboard } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -182,10 +182,18 @@ export default function App() {
         const match = /language-(\w+)/.exec(className || '');
         const codeString = String(children).replace(/\n$/, '');
         
+        const handleCopy = () => {
+            navigator.clipboard.writeText(codeString);
+        };
+
         return !inline && match ? (
             <div className="relative my-4 rounded-md bg-[#1E1E1E]">
                 <div className="flex items-center justify-between px-4 py-2 bg-gray-800/50 rounded-t-md">
                     <span className="text-xs font-sans text-gray-400">{match[1]}</span>
+                    <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
+                        <Clipboard size={14} />
+                        Copy code
+                    </button>
                 </div>
                 <SyntaxHighlighter
                     style={vscDarkPlus}
@@ -294,7 +302,13 @@ export default function App() {
                                             </div>
                                             <div className="flex-1 pt-1">
                                                 <p className="font-semibold text-gray-200 mb-2">{msg.sender === 'user' ? 'You' : 'AI Assistant'}</p>
-                                                <div className="prose prose-invert prose-sm max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br />') }}></div>
+                                                <div className="prose prose-invert prose-sm max-w-none text-gray-300">
+                                                    <ReactMarkdown
+                                                        components={{ code: CodeBlock }}
+                                                    >
+                                                        {msg.text}
+                                                    </ReactMarkdown>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
