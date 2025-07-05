@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Bot, Loader2, Clipboard, BrainCircuit } from 'lucide-react';
+import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -18,7 +18,7 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
-const appId = 'simple-gemini-chatbot'; // Using the original App ID
+const appId = 'simple-gemini-chatbot';
 
 // --- Firebase Initialization ---
 const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
@@ -34,6 +34,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
     const [error, setError] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     // --- Initial Setup Check ---
     useEffect(() => {
@@ -71,16 +72,7 @@ export default function App() {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (fetchedMessages.length === 0) {
-                 setMessages([{
-                    id: 'welcome-1',
-                    text: "Hello! I'm a general-purpose AI assistant. You can ask me anything.",
-                    sender: 'bot',
-                    timestamp: new Date()
-                }]);
-            } else {
-                setMessages(fetchedMessages);
-            }
+            setMessages(fetchedMessages);
         }, (err) => {
             console.error("Error fetching messages:", err);
             setError("Could not fetch messages from Firestore. Check your database rules.");
@@ -95,25 +87,31 @@ export default function App() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
     
+    const handleStarterPrompt = (prompt) => {
+        const fakeEvent = { preventDefault: () => {} };
+        setTimeout(() => {
+             handleSendMessage(fakeEvent, prompt);
+        }, 0);
+    }
+
     // --- Message Handling ---
-    const handleSendMessage = async (e) => {
+    const handleSendMessage = async (e, prompt) => {
         e.preventDefault();
-        if (!input.trim() || isLoading || !userId || !db) return;
+        const textToSend = prompt || input;
+        if (!textToSend.trim() || isLoading || !userId || !db) return;
 
         const userMessage = {
-            text: input,
+            text: textToSend,
             sender: 'user',
             timestamp: serverTimestamp(),
         };
 
         setIsLoading(true);
-        const currentInput = input;
         setInput('');
 
         const messagesColPath = `/artifacts/${appId}/users/${userId}/messages`;
         await addDoc(collection(db, messagesColPath), userMessage);
 
-        // --- Call our secure backend proxy ---
         try {
             const chatHistory = messages
                 .filter(msg => msg.id !== 'welcome-1')
@@ -122,7 +120,7 @@ export default function App() {
                     parts: [{ text: msg.text }]
                 }));
             
-            chatHistory.push({ role: "user", parts: [{ text: currentInput }] });
+            chatHistory.push({ role: "user", parts: [{ text: textToSend }] });
 
             const response = await fetch('/api/gemini', {
                 method: 'POST',
@@ -164,14 +162,29 @@ export default function App() {
             setIsLoading(false);
         }
     };
+
+    if (!isAuthReady) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gray-950 text-gray-300">
+                <Loader2 className="w-12 h-12 animate-spin" />
+            </div>
+        );
+    }
     
+    const StarterPromptCard = ({ title, subtitle, onClick }) => (
+        <button onClick={onClick} className="bg-gray-900/70 p-4 rounded-lg text-left w-full hover:bg-gray-800/90 transition-colors relative border border-gray-800">
+            <p className="font-semibold text-gray-200">{title}</p>
+            <p className="text-sm text-gray-500">{subtitle}</p>
+        </button>
+    );
+
     const CodeBlock = ({ node, inline, className, children, ...props }) => {
         const match = /language-(\w+)/.exec(className || '');
         const codeString = String(children).replace(/\n$/, '');
         
         return !inline && match ? (
-            <div className="relative my-4 rounded-md bg-black text-white">
-                <div className="flex items-center justify-between px-4 py-1 bg-gray-800 rounded-t-md">
+            <div className="relative my-4 rounded-md bg-[#1E1E1E]">
+                <div className="flex items-center justify-between px-4 py-2 bg-gray-800/50 rounded-t-md">
                     <span className="text-xs font-sans text-gray-400">{match[1]}</span>
                 </div>
                 <SyntaxHighlighter
@@ -184,108 +197,148 @@ export default function App() {
                 </SyntaxHighlighter>
             </div>
         ) : (
-            <code className="bg-gray-200 text-gray-800 rounded-sm px-1 py-0.5 text-sm" {...props}>
+            <code className="bg-gray-800/80 text-gray-300 rounded-sm px-1 py-0.5 text-sm" {...props}>
                 {children}
             </code>
         );
     };
 
-    if (!isAuthReady) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
-                <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
-            </div>
-        );
-    }
-    
     return (
-        <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-            {/* --- Sidebar --- */}
-            <div className="w-72 bg-white dark:bg-gray-950 p-6 flex-col justify-between hidden md:flex border-r border-gray-200 dark:border-gray-800">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                         <BrainCircuit className="w-8 h-8 text-indigo-600"/>
-                         <h1 className="text-2xl font-bold">Simple Gemini</h1>
+        <>
+            <style>{`
+                body {
+                    background-color: #020617;
+                    background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+                    background-size: 20px 20px;
+                }
+                .pro-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .pro-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .pro-scrollbar::-webkit-scrollbar-thumb {
+                    background: #374151;
+                    border-radius: 3px;
+                }
+                .pro-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #4b5563;
+                }
+                pre {
+                    padding: 1rem !important;
+                    margin: 0 !important;
+                    font-size: 0.875rem !important;
+                    border-bottom-left-radius: 0.375rem;
+                    border-bottom-right-radius: 0.375rem;
+                }
+            `}</style>
+            <div className="flex h-screen font-sans text-gray-200 bg-transparent">
+                {/* --- Sidebar --- */}
+                <div className={`bg-gray-900/50 backdrop-blur-md border-r border-gray-800 flex flex-col justify-between transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 p-4' : 'w-0 p-0'}`}>
+                    <div className={`transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
+                        <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mb-6 text-sm font-semibold">
+                            <Plus className="w-5 h-5"/> New Chat
+                        </button>
+                        <div className="space-y-1">
+                            <h3 className="text-xs font-semibold text-gray-500 px-2 mb-2 uppercase tracking-wider">Recent</h3>
+                            <button className="w-full flex items-center gap-3 text-left text-gray-300 bg-gray-800/50 py-2 px-2 rounded-lg transition-colors text-sm truncate">
+                                <MessageSquare className="w-4 h-4 flex-shrink-0"/> What is quantum computing?
+                            </button>
+                        </div>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">General Conversational AI</p>
-                    <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                        + New Chat
-                    </button>
+                    <div className={`transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
+                         <button className="w-full flex items-center gap-3 text-left text-gray-300 hover:bg-gray-800/50 py-2 px-2 rounded-lg transition-colors text-sm">
+                            <HelpCircle className="w-4 h-4"/> Help
+                        </button>
+                         <button className="w-full flex items-center gap-3 text-left text-gray-300 hover:bg-gray-800/50 py-2 px-2 rounded-lg transition-colors text-sm">
+                            <Settings className="w-4 h-4"/> Settings
+                        </button>
+                    </div>
                 </div>
-                <div className="text-xs text-gray-500">
-                    <p>User ID: <span className="font-mono">{userId ? userId.substring(0, 12) + '...' : '...'}</span></p>
-                </div>
-            </div>
 
-            {/* --- Main Chat Area --- */}
-            <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
-                 {error && (
-                    <div className="p-4 bg-red-500 text-white text-center text-sm">
-                        <p><strong>Configuration Error:</strong> {error}</p>
-                    </div>
-                )}
-                <div className="flex-1 overflow-y-auto p-6">
-                    <div className="space-y-6">
-                        {messages.map((msg, index) => (
-                            <div key={msg.id || index} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
-                                {msg.sender === 'bot' && (
-                                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
-                                        <Bot className="w-5 h-5 text-white" />
+                {/* --- Main Chat Area --- */}
+                <div className="flex-1 flex flex-col bg-transparent">
+                    <header className="p-4 flex justify-between items-center flex-shrink-0">
+                        <div className="flex items-center gap-2">
+                             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-gray-800 rounded-full">
+                                <Menu className="w-6 h-6 text-gray-400"/>
+                            </button>
+                            <h1 className="text-lg font-semibold">AI Assistant</h1>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-300"/>
+                        </div>
+                    </header>
+                    
+                    <main className="flex-1 overflow-y-auto px-4 pro-scrollbar">
+                        <div className="max-w-3xl mx-auto h-full">
+                            {messages.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full pb-24 text-center">
+                                    <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center border-2 border-gray-700 mb-4">
+                                        <Sparkles className="w-8 h-8 text-blue-500"/>
                                     </div>
-                                )}
-                                <div className={`relative max-w-2xl p-4 rounded-xl shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 rounded-bl-none'}`}>
-                                     <div className="prose prose-sm max-w-none text-gray-800 dark:text-gray-200">
-                                        <ReactMarkdown
-                                            components={{ code: CodeBlock }}
-                                        >
-                                            {msg.text}
-                                        </ReactMarkdown>
+                                    <h2 className="text-2xl font-semibold text-gray-200">How can I help you today?</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-8">
+                                        <StarterPromptCard title="Write a Python script" subtitle="that fetches weather data" onClick={() => handleStarterPrompt("Write a Python script that fetches weather data from an API")}/>
+                                        <StarterPromptCard title="Explain a concept" subtitle="like recursion in programming" onClick={() => handleStarterPrompt("Explain recursion in programming like I'm five")}/>
+                                        <StarterPromptCard title="Brainstorm ideas" subtitle="for a personal portfolio website" onClick={() => handleStarterPrompt("Brainstorm ideas for a personal portfolio website for a software developer")}/>
+                                        <StarterPromptCard title="Refactor this code" subtitle="to be more efficient" onClick={() => handleStarterPrompt("How can I refactor this javascript code to be more efficient?")}/>
                                     </div>
                                 </div>
-                                {msg.sender === 'user' && (
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                                        <User className="w-5 h-5 text-gray-500" />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                    {isLoading && (
-                         <div className="flex items-start gap-4 mt-6">
-                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
-                                <Bot className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="max-w-2xl p-4 rounded-xl bg-white dark:bg-gray-800 rounded-bl-none shadow-sm">
-                                <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
-                            </div>
+                            ) : (
+                                <div className="space-y-8 pb-24">
+                                    {messages.map((msg, index) => (
+                                        <div key={msg.id || index} className="flex items-start gap-4">
+                                            <div className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center flex-shrink-0">
+                                                {msg.sender === 'user' ? <User className="w-5 h-5 text-gray-400"/> : <Sparkles className="w-5 h-5 text-blue-500"/>}
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <p className="font-semibold text-gray-200 mb-2">{msg.sender === 'user' ? 'You' : 'AI Assistant'}</p>
+                                                <div className="prose prose-invert prose-sm max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br />') }}></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {isLoading && (
+                                         <div className="flex items-start gap-4">
+                                            <div className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center flex-shrink-0">
+                                                <Sparkles className="w-5 h-5 text-blue-500"/>
+                                            </div>
+                                            <div className="flex-1 pt-1 mt-2">
+                                                 <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                            )}
                         </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
+                    </main>
 
-                {/* --- Input Form --- */}
-                <div className="p-6 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800">
-                    <form id="chat-form" onSubmit={handleSendMessage} className="relative">
-                        <textarea
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSendMessage(e);
-                                }
-                            }}
-                            placeholder="Ask me anything..."
-                            className="w-full bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg py-3 pl-4 pr-12 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow resize-none"
-                            rows={1}
-                            disabled={isLoading || !!error}
-                        />
-                        <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-3 bottom-3 p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">
-                            <ArrowUp className="w-5 h-5" />
-                        </button>
-                    </form>
+                    <footer className="px-4 pb-4 flex-shrink-0">
+                         <div className="max-w-3xl mx-auto">
+                            <form onSubmit={handleSendMessage} className="relative">
+                                <textarea
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSendMessage(e);
+                                        }
+                                    }}
+                                    placeholder="Enter a prompt here..."
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-4 pr-14 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow resize-none"
+                                    rows={1}
+                                    disabled={isLoading || !!error}
+                                />
+                                <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-3 bottom-2.5 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                    <ArrowUp className="w-5 h-5" />
+                                </button>
+                            </form>
+                        </div>
+                    </footer>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
