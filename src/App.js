@@ -121,7 +121,10 @@ export default function App() {
             
             chatHistory.push({ role: "user", parts: [{ text: textToSend }] });
 
-            const response = await fetch('/api/gemini', {
+            // Using the full, absolute URL to the Netlify function
+            const backendUrl = 'https://yb-chatbot.netlify.app/.netlify/functions/gemini';
+
+            const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chatHistory })
