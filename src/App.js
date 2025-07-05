@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Loader2, Clipboard, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings } from 'lucide-react';
+import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings } from 'lucide-react';
 
 // --- Firebase Configuration ---
 // This robust method reads each key individually from the build environment.
@@ -163,21 +163,6 @@ export default function App() {
             setIsLoading(false);
         }
     };
-    
-    // --- Copy to Clipboard ---
-    const copyToClipboard = (text) => {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
-        }
-        document.body.removeChild(textArea);
-    };
-
 
     if (!isAuthReady) {
         return (
