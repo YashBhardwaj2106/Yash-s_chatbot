@@ -304,7 +304,7 @@ export default function App() {
                                         handleSendMessage(e);
                                     }
                                 }}
-                                placeholder="Message ChatGPT..."
+                                placeholder="Message Chatbot..."
                                 className="w-full border border-gray-300 rounded-lg py-3 pl-4 pr-14 focus:ring-2 focus:ring-gray-400 focus:outline-none transition-shadow resize-none"
                                 rows={1}
                                 disabled={isLoading || !!error}
