@@ -10,6 +10,7 @@ exports.handler = async function (event) {
   const { chatHistory } = JSON.parse(event.body);
   
   // Get the secret API key from the server-side environment variables
+  // NOTE: The key name is simpler here, as it's not exposed to the React build process.
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {

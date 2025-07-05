@@ -1,10 +1,7 @@
 # This file tells Netlify how to build your project and where to find the serverless function.
 [build]
-  # This is the standard command to build a React app.
   command = "npm run build"
-  # This is the directory where the built website will be.
   publish = "build"
-  # This tells Netlify where our backend function code lives.
   functions = "netlify/functions"
 
 # This rule makes our backend function available at the URL "/api/gemini"
