@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Bot, Loader2, Clipboard, BrainCircuit } from 'lucide-react';
+import { ArrowUp, User, Loader2, Clipboard, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings } from 'lucide-react';
 
 // --- Firebase Configuration ---
 // This robust method reads each key individually from the build environment.
@@ -31,6 +31,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
     const [error, setError] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     // --- Initial Setup Check ---
     useEffect(() => {
@@ -68,16 +69,7 @@ export default function App() {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (fetchedMessages.length === 0) {
-                 setMessages([{
-                    id: 'welcome-1',
-                    text: "Hello! I'm a general-purpose AI assistant. You can ask me anything.",
-                    sender: 'bot',
-                    timestamp: new Date()
-                }]);
-            } else {
-                setMessages(fetchedMessages);
-            }
+            setMessages(fetchedMessages);
         }, (err) => {
             console.error("Error fetching messages:", err);
             setError("Could not fetch messages from Firestore. Check your database rules.");
@@ -92,19 +84,29 @@ export default function App() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
     
+    const handleStarterPrompt = (prompt) => {
+        const fakeEvent = { preventDefault: () => {} };
+        setInput(prompt);
+        // We need to set the input and then call the handler in a timeout
+        // to ensure the state is updated before the form submission logic runs.
+        setTimeout(() => {
+             handleSendMessage(fakeEvent, prompt);
+        }, 0);
+    }
+
     // --- Message Handling ---
-    const handleSendMessage = async (e) => {
+    const handleSendMessage = async (e, prompt) => {
         e.preventDefault();
-        if (!input.trim() || isLoading || !userId || !db) return;
+        const textToSend = prompt || input;
+        if (!textToSend.trim() || isLoading || !userId || !db) return;
 
         const userMessage = {
-            text: input,
+            text: textToSend,
             sender: 'user',
             timestamp: serverTimestamp(),
         };
 
         setIsLoading(true);
-        const currentInput = input;
         setInput('');
 
         const messagesColPath = `/artifacts/${appId}/users/${userId}/messages`;
@@ -119,7 +121,7 @@ export default function App() {
                     parts: [{ text: msg.text }]
                 }));
             
-            chatHistory.push({ role: "user", parts: [{ text: currentInput }] });
+            chatHistory.push({ role: "user", parts: [{ text: textToSend }] });
 
             const response = await fetch('/api/gemini', {
                 method: 'POST',
@@ -179,99 +181,128 @@ export default function App() {
 
     if (!isAuthReady) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
                 <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
-                <p className="ml-4 text-lg">Initializing AI...</p>
             </div>
         );
     }
+    
+    const StarterPromptCard = ({ title, subtitle, onClick }) => (
+        <button onClick={onClick} className="bg-gray-100 dark:bg-gray-800/50 p-4 rounded-xl text-left w-full hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors relative">
+            <p className="font-medium text-gray-700 dark:text-gray-300">{title}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
+        </button>
+    );
 
     return (
         <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             {/* --- Sidebar --- */}
-            <div className="w-72 bg-white dark:bg-gray-950 p-6 flex-col justify-between hidden md:flex border-r border-gray-200 dark:border-gray-800">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                         <BrainCircuit className="w-8 h-8 text-indigo-600"/>
-                         <h1 className="text-2xl font-bold">Yash's AI Assistant</h1>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">General Conversational AI</p>
-                    <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                        + New Chat
+            <div className={`bg-gray-200 dark:bg-gray-950 flex flex-col justify-between transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 p-4' : 'w-0 p-0'}`}>
+                <div className={`${isSidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+                    <button className="w-full bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-2 px-4 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 mb-6">
+                        <Plus className="w-5 h-5"/> New Chat
                     </button>
+                    <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">Recent</h3>
+                        <button className="w-full flex items-center gap-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-800/50 py-2 px-2 rounded-lg transition-colors truncate">
+                            <MessageSquare className="w-4 h-4 flex-shrink-0"/> What is quantum computing?
+                        </button>
+                    </div>
                 </div>
-                <div className="text-xs text-gray-500">
-                    <p>User ID: <span className="font-mono">{userId ? userId.substring(0, 12) + '...' : '...'}</span></p>
+                <div className={`${isSidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+                     <button className="w-full flex items-center gap-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-800/50 py-2 px-2 rounded-lg transition-colors">
+                        <HelpCircle className="w-5 h-5"/> Help
+                    </button>
+                     <button className="w-full flex items-center gap-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-800/50 py-2 px-2 rounded-lg transition-colors">
+                        <Settings className="w-5 h-5"/> Settings
+                    </button>
                 </div>
             </div>
 
             {/* --- Main Chat Area --- */}
-            <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
-                 {error && (
-                    <div className="p-4 bg-red-500 text-white text-center text-sm">
-                        <p><strong>Configuration Error:</strong> {error}</p>
-                    </div>
-                )}
-                <div className="flex-1 overflow-y-auto p-6">
-                    <div className="space-y-6">
-                        {messages.map((msg, index) => (
-                            <div key={msg.id || index} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
-                                {msg.sender === 'bot' && (
-                                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
-                                        <Bot className="w-5 h-5 text-white" />
-                                    </div>
-                                )}
-                                <div className={`relative max-w-2xl p-4 rounded-xl shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 rounded-bl-none'}`}>
-                                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                                    {msg.sender === 'bot' && (
-                                        <button onClick={() => copyToClipboard(msg.text)} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
-                                            <Clipboard className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                                {msg.sender === 'user' && (
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                                        <User className="w-5 h-5 text-gray-500" />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                    {isLoading && (
-                         <div className="flex items-start gap-4 mt-6">
-                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
-                                <Bot className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="max-w-2xl p-4 rounded-xl bg-white dark:bg-gray-800 rounded-bl-none shadow-sm">
-                                <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
-                            </div>
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
-
-                {/* --- Input Form --- */}
-                <div className="p-6 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800">
-                    <form id="chat-form" onSubmit={handleSendMessage} className="relative">
-                        <textarea
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSendMessage(e);
-                                }
-                            }}
-                            placeholder="Ask me anything..."
-                            className="w-full bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg py-3 pl-4 pr-12 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow resize-none"
-                            rows={1}
-                            disabled={isLoading || !!error}
-                        />
-                        <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-3 bottom-3 p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">
-                            <ArrowUp className="w-5 h-5" />
+            <div className="flex-1 flex flex-col">
+                <header className="p-4 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full">
+                            <Menu className="w-6 h-6 text-gray-600 dark:text-gray-400"/>
                         </button>
-                    </form>
-                </div>
+                        <h1 className="text-xl font-medium">Gemini</h1>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-600 dark:text-gray-300"/>
+                    </div>
+                </header>
+                
+                <main className="flex-1 overflow-y-auto px-4">
+                    <div className="max-w-3xl mx-auto h-full">
+                        {messages.length === 0 ? (
+                            <div className="flex flex-col justify-between h-full pb-24">
+                                <div className="text-left">
+                                    <h2 className="text-5xl font-medium bg-gradient-to-r from-blue-600 via-purple-500 to-red-500 text-transparent bg-clip-text">Hello, Yash</h2>
+                                    <p className="text-5xl font-medium text-gray-400 dark:text-gray-600">How can I help you today?</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                                    <StarterPromptCard title="Give me ideas" subtitle="for what to do with my kids' art" onClick={() => handleStarterPrompt("Give me ideas for what to do with my kids' art")}/>
+                                    <StarterPromptCard title="Explain this to me" subtitle="what is the butterfly effect?" onClick={() => handleStarterPrompt("Explain what is the butterfly effect?")}/>
+                                    <StarterPromptCard title="Write a thank you note" subtitle="to my interviewer" onClick={() => handleStarterPrompt("Write a thank you note to my interviewer")}/>
+                                    <StarterPromptCard title="Help me debug" subtitle="why is my code not working?" onClick={() => handleStarterPrompt("Help me debug my python code")}/>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-8 pb-24">
+                                {messages.map((msg, index) => (
+                                    <div key={msg.id || index} className="flex items-start gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                            {msg.sender === 'user' ? <User className="w-5 h-5 text-gray-600 dark:text-gray-300"/> : <Sparkles className="w-5 h-5 text-indigo-500"/>}
+                                        </div>
+                                        <div className="flex-1 pt-1">
+                                            <p className="font-medium text-gray-800 dark:text-gray-200 mb-2">{msg.sender === 'user' ? 'You' : 'Gemini'}</p>
+                                            <p className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">{msg.text}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {isLoading && (
+                                     <div className="flex items-start gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                            <Sparkles className="w-5 h-5 text-indigo-500"/>
+                                        </div>
+                                        <div className="flex-1 pt-1">
+                                             <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        )}
+                    </div>
+                </main>
+
+                <footer className="px-4 pb-4">
+                     <div className="max-w-3xl mx-auto">
+                        <form onSubmit={handleSendMessage} className="relative">
+                            <textarea
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage(e);
+                                    }
+                                }}
+                                placeholder="Enter a prompt here"
+                                className="w-full bg-gray-200 dark:bg-gray-800/50 border-none rounded-2xl py-4 pl-6 pr-14 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow resize-none"
+                                rows={1}
+                                disabled={isLoading || !!error}
+                            />
+                            <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-4 bottom-3 p-2 rounded-full bg-gray-800 text-white dark:bg-gray-300 dark:text-gray-800 hover:bg-gray-900 dark:hover:bg-white disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                                <ArrowUp className="w-5 h-5" />
+                            </button>
+                        </form>
+                         <p className="text-xs text-center text-gray-400 dark:text-gray-600 mt-2">
+                           Gemini may display inaccurate info, including about people, so double-check its responses.
+                        </p>
+                    </div>
+                </footer>
             </div>
         </div>
     );
