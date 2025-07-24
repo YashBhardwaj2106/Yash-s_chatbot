@@ -2,20 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings, Clipboard } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
+import { ArrowUp, User, Loader2, Sparkles, Menu, Plus, MessageSquare, HelpCircle, Settings } from 'lucide-react';
 
 // --- Firebase Configuration ---
+// Safely access environment variables, providing fallbacks for browser environments
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID
+  apiKey: typeof process !== 'undefined' ? process.env.REACT_APP_FIREBASE_API_KEY : '',
+  authDomain: typeof process !== 'undefined' ? process.env.REACT_APP_FIREBASE_AUTH_DOMAIN : '',
+  projectId: typeof process !== 'undefined' ? process.env.REACT_APP_FIREBASE_PROJECT_ID : '',
+  storageBucket: typeof process !== 'undefined' ? process.env.REACT_APP_FIREBASE_STORAGE_BUCKET : '',
+  messagingSenderId: typeof process !== 'undefined' ? process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID : '',
+  appId: typeof process !== 'undefined' ? process.env.REACT_APP_FIREBASE_APP_ID : ''
 };
 
 const appId = 'simple-gemini-chatbot';
@@ -178,87 +175,44 @@ export default function App() {
         </button>
     );
 
-    const CodeBlock = ({ node, inline, className, children, ...props }) => {
-        const match = /language-(\w+)/.exec(className || '');
-        const codeString = String(children).replace(/\n$/, '');
-        
-        const handleCopy = () => {
-            navigator.clipboard.writeText(codeString);
-        };
-
-        return !inline && match ? (
-            <div className="relative my-4 rounded-md bg-[#1E1E1E]">
-                <div className="flex items-center justify-between px-4 py-2 bg-gray-800/50 rounded-t-md">
-                    <span className="text-xs font-sans text-gray-400">{match[1]}</span>
-                    <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
-                        <Clipboard size={14} />
-                        Copy code
-                    </button>
-                </div>
-                <SyntaxHighlighter
-                    style={vscDarkPlus}
-                    language={match[1]}
-                    PreTag="div"
-                    {...props}
-                >
-                    {codeString}
-                </SyntaxHighlighter>
-            </div>
-        ) : (
-            <code className="bg-gray-800/80 text-gray-300 rounded-sm px-1 py-0.5 text-sm" {...props}>
-                {children}
-            </code>
-        );
-    };
-
     return (
         <>
             <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
                 body {
-                    background-color: #020617;
-                    background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-                    background-size: 20px 20px;
+                    font-family: 'Inter', sans-serif;
+                    background-color: #0A0A0A;
+                    background-image: 
+                        radial-gradient(circle at 15% 90%, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0) 40%),
+                        radial-gradient(circle at 85% 20%, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0) 40%),
+                        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px), 
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+                    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
                 }
-                .pro-scrollbar::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .pro-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .pro-scrollbar::-webkit-scrollbar-thumb {
-                    background: #374151;
-                    border-radius: 3px;
-                }
-                .pro-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #4b5563;
-                }
-                pre {
-                    padding: 1rem !important;
-                    margin: 0 !important;
-                    font-size: 0.875rem !important;
-                    border-bottom-left-radius: 0.375rem;
-                    border-bottom-right-radius: 0.375rem;
-                }
+                .pro-scrollbar::-webkit-scrollbar { width: 6px; }
+                .pro-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .pro-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+                .pro-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
             `}</style>
-            <div className="flex h-screen font-sans text-gray-200 bg-transparent">
+            <div className="flex h-screen text-gray-200 bg-transparent">
                 {/* --- Sidebar --- */}
-                <div className={`bg-gray-900/50 backdrop-blur-md border-r border-gray-800 flex flex-col justify-between transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 p-4' : 'w-0 p-0'}`}>
+                <div className={`bg-black/30 backdrop-blur-xl border-r border-gray-800/50 flex flex-col justify-between transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 p-4' : 'w-0 p-0'}`}>
                     <div className={`transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-                        <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mb-6 text-sm font-semibold">
-                            <Plus className="w-5 h-5"/> New Chat
+                        <button className="w-full bg-blue-600 text-white py-2 px-3 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-between gap-2 mb-6 text-sm font-semibold">
+                            New Chat <Plus className="w-4 h-4"/>
                         </button>
                         <div className="space-y-1">
                             <h3 className="text-xs font-semibold text-gray-500 px-2 mb-2 uppercase tracking-wider">Recent</h3>
-                            <button className="w-full flex items-center gap-3 text-left text-gray-300 bg-gray-800/50 py-2 px-2 rounded-lg transition-colors text-sm truncate">
+                            <button className="w-full flex items-center gap-3 text-left text-gray-300 bg-gray-500/10 py-2 px-2 rounded-md transition-colors text-sm truncate">
                                 <MessageSquare className="w-4 h-4 flex-shrink-0"/> What is quantum computing?
                             </button>
                         </div>
                     </div>
                     <div className={`transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-                         <button className="w-full flex items-center gap-3 text-left text-gray-300 hover:bg-gray-800/50 py-2 px-2 rounded-lg transition-colors text-sm">
+                         <button className="w-full flex items-center gap-3 text-left text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 py-2 px-2 rounded-md transition-colors text-sm">
                             <HelpCircle className="w-4 h-4"/> Help
                         </button>
-                         <button className="w-full flex items-center gap-3 text-left text-gray-300 hover:bg-gray-800/50 py-2 px-2 rounded-lg transition-colors text-sm">
+                         <button className="w-full flex items-center gap-3 text-left text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 py-2 px-2 rounded-md transition-colors text-sm">
                             <Settings className="w-4 h-4"/> Settings
                         </button>
                     </div>
@@ -268,10 +222,10 @@ export default function App() {
                 <div className="flex-1 flex flex-col bg-transparent">
                     <header className="p-4 flex justify-between items-center flex-shrink-0">
                         <div className="flex items-center gap-2">
-                             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-gray-800 rounded-full">
-                                <Menu className="w-6 h-6 text-gray-400"/>
+                             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-gray-800/50 rounded-md">
+                                <Menu className="w-5 h-5 text-gray-400"/>
                             </button>
-                            <h1 className="text-lg font-semibold">AI Assistant</h1>
+                            <h1 className="text-md font-semibold text-gray-300">AI Assistant</h1>
                         </div>
                         <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
                             <User className="w-5 h-5 text-gray-300"/>
@@ -282,8 +236,8 @@ export default function App() {
                         <div className="max-w-3xl mx-auto h-full">
                             {messages.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full pb-24 text-center">
-                                    <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center border-2 border-gray-700 mb-4">
-                                        <Sparkles className="w-8 h-8 text-blue-500"/>
+                                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center border-2 border-gray-700 mb-4">
+                                        <Sparkles className="w-8 h-8 text-white"/>
                                     </div>
                                     <h2 className="text-2xl font-semibold text-gray-200">How can I help you today?</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-8">
@@ -302,13 +256,7 @@ export default function App() {
                                             </div>
                                             <div className="flex-1 pt-1">
                                                 <p className="font-semibold text-gray-200 mb-2">{msg.sender === 'user' ? 'You' : 'AI Assistant'}</p>
-                                                <div className="prose prose-invert prose-sm max-w-none text-gray-300">
-                                                    <ReactMarkdown
-                                                        components={{ code: CodeBlock }}
-                                                    >
-                                                        {msg.text}
-                                                    </ReactMarkdown>
-                                                </div>
+                                                <div className="prose prose-invert prose-sm max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br />') }}></div>
                                             </div>
                                         </div>
                                     ))}
@@ -341,11 +289,11 @@ export default function App() {
                                         }
                                     }}
                                     placeholder="Enter a prompt here..."
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-4 pr-14 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow resize-none"
+                                    className="w-full bg-black/20 border border-gray-700/50 rounded-lg py-3 pl-4 pr-14 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow resize-none backdrop-blur-sm"
                                     rows={1}
                                     disabled={isLoading || !!error}
                                 />
-                                <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-3 bottom-2.5 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <button type="submit" disabled={isLoading || !!error || !input.trim()} className="absolute right-3 bottom-2.5 p-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                                     <ArrowUp className="w-5 h-5" />
                                 </button>
                             </form>
