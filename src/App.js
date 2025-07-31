@@ -15,8 +15,6 @@ const IconHelpCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg
 const IconSettings = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
 
 // --- Firebase Configuration ---
-// This uses environment variables, which is the standard for Create React App.
-// You will need to set these in your Netlify project settings.
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -27,9 +25,19 @@ const firebaseConfig = {
 };
 
 // --- Firebase Initialization ---
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+let app, auth, db;
+// Check that all environment variables are present before initializing
+const isFirebaseConfigured = Object.values(firebaseConfig).every(value => value);
+
+if (isFirebaseConfigured) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+  }
+}
 
 // --- Main App Component ---
 export default function App() {
@@ -44,12 +52,16 @@ export default function App() {
 
   // --- Authentication Effect ---
   useEffect(() => {
+    // Don't run auth logic if Firebase isn't configured
+    if (!isFirebaseConfigured) {
+      setIsAuthReady(true);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
       } else {
         try {
-          // On Netlify, we'll just use anonymous sign-in.
           await signInAnonymously(auth);
         } catch (error) {
           console.error("Anonymous sign-in failed:", error);
@@ -63,9 +75,8 @@ export default function App() {
 
   // --- Firestore Message Subscription Effect ---
   useEffect(() => {
-    if (!isAuthReady || !userId) return;
+    if (!isAuthReady || !userId || !isFirebaseConfigured) return;
 
-    // Use the App ID from environment variables for the collection path.
     const messagesColPath = `/artifacts/${process.env.REACT_APP_FIREBASE_APP_ID}/users/${userId}/messages`;
     const q = query(collection(db, messagesColPath));
 
@@ -92,8 +103,6 @@ export default function App() {
   
   // --- Gemini API Call ---
   const callGeminiAPI = async (chatHistory) => {
-      // NOTE: This now calls a Netlify Function instead of the Google URL directly.
-      // This is a more secure way to handle your API key.
       const response = await fetch('/.netlify/functions/gemini', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -164,6 +173,24 @@ export default function App() {
     }
   };
 
+  // --- RENDER LOGIC ---
+
+  // Show a config error screen if Firebase keys are missing
+  if (!isFirebaseConfigured) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-950 text-white">
+        <div className="text-center p-6 bg-red-900/40 border border-red-700 rounded-lg max-w-md mx-auto">
+          <h1 className="text-2xl font-bold text-white mb-3">Configuration Error</h1>
+          <p className="text-red-200">The application is not configured correctly.</p>
+          <p className="text-gray-400 mt-2 text-sm">
+            Please ensure all `REACT_APP_FIREBASE_*` environment variables are set in your Netlify deployment settings.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show a loading spinner while waiting for auth
   if (!isAuthReady) {
     return <div className="flex items-center justify-center h-screen bg-gray-950 text-gray-300"><IconLoader className="w-12 h-12 animate-spin" /></div>;
   }
