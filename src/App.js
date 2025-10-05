@@ -293,6 +293,7 @@ export default function App() {
         timestamp: serverTimestamp(),
 
       };
+      const messagesColPath = 'your/path/here'; // Or whatever the correct value is
 
       await addDoc(collection(db, messagesColPath), errorMessage);
 
